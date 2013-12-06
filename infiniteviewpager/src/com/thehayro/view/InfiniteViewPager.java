@@ -16,15 +16,6 @@
 
 package com.thehayro.view;
 
-import static com.thehayro.internal.Constants.ADAPTER_STATE;
-import static com.thehayro.internal.Constants.LOG_TAG;
-import static com.thehayro.internal.Constants.PAGE_POSITION_CENTER;
-import static com.thehayro.internal.Constants.PAGE_POSITION_LEFT;
-import static com.thehayro.internal.Constants.PAGE_POSITION_RIGHT;
-import static com.thehayro.internal.Constants.SUPER_STATE;
-
-import com.thehayro.internal.Constants;
-
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -32,6 +23,19 @@ import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.MotionEvent;
+import android.view.animation.Interpolator;
+
+import com.thehayro.internal.Constants;
+
+import java.lang.reflect.Field;
+
+import static com.thehayro.internal.Constants.ADAPTER_STATE;
+import static com.thehayro.internal.Constants.LOG_TAG;
+import static com.thehayro.internal.Constants.PAGE_POSITION_CENTER;
+import static com.thehayro.internal.Constants.PAGE_POSITION_LEFT;
+import static com.thehayro.internal.Constants.PAGE_POSITION_RIGHT;
+import static com.thehayro.internal.Constants.SUPER_STATE;
 
 /**
  * ViewPager that allows infinite scrolling.
@@ -40,15 +44,48 @@ public class InfiniteViewPager extends ViewPager {
 
     private static final String TAG = "InfiniteViewPager";
 
+    private boolean mIsPagerEnabled = true;
+
     private int mCurrPosition = PAGE_POSITION_CENTER;
     private OnInfinitePageChangeListener mListener;
 
     public InfiniteViewPager(Context context) {
         this(context, null);
+        postInitViewPager();
     }
 
     public InfiniteViewPager(Context context, AttributeSet attrs) {
         super(context, attrs);
+        postInitViewPager();
+    }
+
+    private CustomScroller mScroller = null;
+
+    /**
+     * Override the Scroller instance with our own class so we can change the
+     * duration
+     */
+    private void postInitViewPager() {
+        try {
+            Field scroller = ViewPager.class.getDeclaredField("mScroller");
+            scroller.setAccessible(true);
+            Field interpolator = ViewPager.class.getDeclaredField("sInterpolator");
+            interpolator.setAccessible(true);
+
+            mScroller = new CustomScroller(getContext(),
+                    (Interpolator) interpolator.get(null));
+            scroller.set(this, mScroller);
+        } catch (Exception e) {
+        }
+    }
+
+    /**
+     * Set the factor by which the duration will change
+     */
+    public void setAnimationDuration(int animationDuration) {
+        if (mScroller != null) {
+            mScroller.setAnimationDuration(animationDuration);
+        }
     }
 
     @Override
@@ -87,7 +124,7 @@ public class InfiniteViewPager extends ViewPager {
     }
 
     private void initInfiniteViewPager() {
-        setCurrentItem(PAGE_POSITION_CENTER);
+        setCurrentItem(PAGE_POSITION_CENTER, false);
         setOnPageChangeListener(new OnPageChangeListener() {
             @Override
             public void onPageScrolled(int i, float positionOffset, int positionOffsetPixels) {
@@ -119,19 +156,29 @@ public class InfiniteViewPager extends ViewPager {
                     return;
                 }
 
-                if (state == ViewPager.SCROLL_STATE_IDLE) {
-                    if (mCurrPosition == PAGE_POSITION_LEFT) {
-                        adapter.movePageContents(PAGE_POSITION_CENTER, PAGE_POSITION_RIGHT);
-                        adapter.movePageContents(PAGE_POSITION_LEFT, PAGE_POSITION_CENTER);
-                        adapter.setCurrentIndicator(adapter.getPreviousIndicator());
-                        adapter.fillPage(PAGE_POSITION_LEFT);
-                    } else if (mCurrPosition == PAGE_POSITION_RIGHT) {
-                        adapter.movePageContents(PAGE_POSITION_CENTER, PAGE_POSITION_LEFT);
-                        adapter.movePageContents(PAGE_POSITION_RIGHT, PAGE_POSITION_CENTER);
-                        adapter.setCurrentIndicator(adapter.getNextIndicator());
-                        adapter.fillPage(PAGE_POSITION_RIGHT);
-                    }
-                    setCurrentItem(PAGE_POSITION_CENTER, false);
+                switch (state) {
+                    case ViewPager.SCROLL_STATE_IDLE:
+                        if (mCurrPosition == PAGE_POSITION_LEFT) {
+                            if (adapter.canScrollPrevious()) {
+                                adapter.movePageContents(PAGE_POSITION_CENTER, PAGE_POSITION_RIGHT);
+                                adapter.movePageContents(PAGE_POSITION_LEFT, PAGE_POSITION_CENTER);
+                                adapter.fillPage(PAGE_POSITION_LEFT);
+                                setCurrentItem(PAGE_POSITION_CENTER, false);
+                            }
+                        } else if (mCurrPosition == PAGE_POSITION_RIGHT) {
+                            if (adapter.canScrollNext()) {
+                                adapter.movePageContents(PAGE_POSITION_CENTER, PAGE_POSITION_LEFT);
+                                adapter.movePageContents(PAGE_POSITION_RIGHT, PAGE_POSITION_CENTER);
+                                adapter.fillPage(PAGE_POSITION_RIGHT);
+                                setCurrentItem(PAGE_POSITION_CENTER, false);
+                            }
+                        }
+
+                        mIsPagerEnabled = true;
+                        break;
+                    case ViewPager.SCROLL_STATE_SETTLING:
+                        mIsPagerEnabled = false;
+                        break;
                 }
             }
         });
@@ -143,6 +190,24 @@ public class InfiniteViewPager extends ViewPager {
             throw new RuntimeException("Cannot change page index unless its 1.");
         }
         super.setCurrentItem(item);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (mIsPagerEnabled) {
+            return super.onTouchEvent(event);
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent event) {
+        if (mIsPagerEnabled) {
+            return super.onInterceptTouchEvent(event);
+        }
+
+        return true;
     }
 
     /**

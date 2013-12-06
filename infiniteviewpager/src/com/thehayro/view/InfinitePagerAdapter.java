@@ -15,15 +15,15 @@
  */
 package com.thehayro.view;
 
-import static com.thehayro.internal.Constants.PAGE_COUNT;
-
-import com.thehayro.internal.Constants;
-import com.thehayro.internal.PageModel;
-
 import android.support.v4.view.PagerAdapter;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+
+import com.thehayro.internal.Constants;
+import com.thehayro.internal.PageModel;
+
+import static com.thehayro.internal.Constants.PAGE_COUNT;
 
 /**
  * Base class providing the adapter to populate inside of a {@link com.thehayro.view.InfiniteViewPager}.
@@ -71,6 +71,7 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
         return model;
     }
 
+
     /**
      * fills the page on index {@code position}.
      * @param position the page index to fill the page.
@@ -102,7 +103,7 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
      * @param pagePosition the position in the pageModel array between [0..2]
      * @return a new instance of a page model.
      */
-    private PageModel<T> createPageModel(final int pagePosition) {
+    private PageModel<T> createPageModel(final int pagePosition){
         final T indicator = getIndicatorFromPagePosition(pagePosition);
         final ViewGroup view = instantiateItem(indicator);
 
@@ -117,13 +118,13 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
         T indicator = null;
         switch (pagePosition) {
             case Constants.PAGE_POSITION_LEFT:
-                indicator = getPreviousIndicator();
+                indicator = getPreviousIndicator(); //TODO
                 break;
             case Constants.PAGE_POSITION_CENTER:
                 indicator = getCurrentIndicator();
                 break;
             case Constants.PAGE_POSITION_RIGHT:
-                indicator = getNextIndicator();
+                indicator = getNextIndicator(); //TODO
                 break;
         }
         return indicator;
@@ -174,7 +175,7 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
      * Sets {@code indicator} as the current visible indicator.
      * @param indicator a indicator value.
      */
-    void setCurrentIndicator(final T indicator) {
+    public void setCurrentIndicator(final T indicator) {
         mCurrentIndicator = indicator;
     }
 
@@ -191,6 +192,19 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
      * @return the previous indicator.
      */
     public abstract T getPreviousIndicator();
+
+    /**
+     *
+     * @return true if can scroll forward.
+     */
+    public abstract boolean canScrollNext();
+
+
+    /**
+     *
+     * @return true if can scroll backward.
+     */
+    public abstract boolean canScrollPrevious();
 
     /**
      * Instantiates a page.
