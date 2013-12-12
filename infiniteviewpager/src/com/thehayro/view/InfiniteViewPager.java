@@ -30,7 +30,14 @@ import com.thehayro.internal.Constants;
 
 import java.lang.reflect.Field;
 
-import static com.thehayro.internal.Constants.*;
+import static com.thehayro.internal.Constants.ADAPTER_STATE;
+import static com.thehayro.internal.Constants.FLAG_LEFT_IS_NOT_NULL;
+import static com.thehayro.internal.Constants.FLAG_RIGHT_IS_NOT_NULL;
+import static com.thehayro.internal.Constants.LOG_TAG;
+import static com.thehayro.internal.Constants.PAGE_POSITION_CENTER;
+import static com.thehayro.internal.Constants.PAGE_POSITION_LEFT;
+import static com.thehayro.internal.Constants.PAGE_POSITION_RIGHT;
+import static com.thehayro.internal.Constants.SUPER_STATE;
 
 /**
  * ViewPager that allows infinite scrolling.
@@ -68,7 +75,11 @@ public class InfiniteViewPager extends ViewPager {
             boolean isRightExists = (initState & FLAG_RIGHT_IS_NOT_NULL) != 0;
 
             if (!isLeftExists && !isRightExists) {
-
+                adapter.movePageContents(PAGE_POSITION_CENTER, PAGE_POSITION_LEFT);
+                adapter.movePagesLeft();
+                adapter.setCount(1);
+                adapter.notifyDataSetChanged();
+                setCurrentItem(PAGE_POSITION_LEFT, false);
             } else if (!isRightExists) {
                 adapter.movePageContents(PAGE_POSITION_CENTER, PAGE_POSITION_RIGHT);
                 adapter.movePageContents(PAGE_POSITION_LEFT, PAGE_POSITION_CENTER);
@@ -97,6 +108,8 @@ public class InfiniteViewPager extends ViewPager {
             }
         }
     };
+
+
 
     /**
      * Override the Scroller instance with our own class so we can change the
@@ -179,7 +192,7 @@ public class InfiniteViewPager extends ViewPager {
                 }
                 if (mListener != null && getAdapter() != null) {
                     final InfinitePagerAdapter adapter = (InfinitePagerAdapter) getAdapter();
-                    mListener.onPageSelected(adapter.getCurrentIndicator());
+                    mListener.onPageSelected(adapter.getCurrentIndicator(), position);
                 }
             }
 
@@ -310,7 +323,7 @@ public class InfiniteViewPager extends ViewPager {
          * This method will be invoked when a new page has been selected.
          * @param indicator the indicator of this page.
          */
-        void onPageSelected(Object indicator);
+        void onPageSelected(Object indicator, int position);
 
         /**
          * Called when the scroll state changes. Useful for discovering when the user

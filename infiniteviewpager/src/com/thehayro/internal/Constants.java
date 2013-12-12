@@ -24,9 +24,9 @@ public final class Constants {
 
     public static boolean DEBUG = false;
 
-    public static final int PAGE_POSITION_LEFT = 0;
+    public static final int PAGE_POSITION_LEFT   = 0;
     public static final int PAGE_POSITION_CENTER = 1;
-    public static final int PAGE_POSITION_RIGHT = 2;
+    public static final int PAGE_POSITION_RIGHT  = 2;
 
     public static final int PAGE_COUNT = 3;
 

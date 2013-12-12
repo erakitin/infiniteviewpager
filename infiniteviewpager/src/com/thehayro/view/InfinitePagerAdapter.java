@@ -74,6 +74,7 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
         }
         final PageModel<T> model = createPageModel(position);
         mPageModels[position] = model;
+        container.addView(model.getParentView());
         if (!mInitialized) {
             if (mScreenInitCount >= PAGE_COUNT) {
                 mInitialized = true;
@@ -82,7 +83,6 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
                 }
             }
         }
-        container.addView(model.getParentView());
         return model;
     }
 
@@ -297,7 +297,6 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
     }
 
     // Debug related methods
-
     private void printPageModels(final String tag) {
         for (int i = 0; i < PAGE_COUNT; i++) {
             printPageModel(tag, mPageModels[i], i);
