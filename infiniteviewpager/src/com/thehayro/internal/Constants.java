@@ -30,6 +30,9 @@ public final class Constants {
 
     public static final int PAGE_COUNT = 3;
 
+    public static final int FLAG_LEFT_IS_NOT_NULL   = 2;
+    public static final int FLAG_RIGHT_IS_NOT_NULL  = 1;
+
     public static final String SUPER_STATE = "super_state";
     public static final String ADAPTER_STATE = "adapter_state";
 

@@ -23,7 +23,7 @@ import android.view.ViewGroup;
 import com.thehayro.internal.Constants;
 import com.thehayro.internal.PageModel;
 
-import static com.thehayro.internal.Constants.PAGE_COUNT;
+import static com.thehayro.internal.Constants.*;
 
 /**
  * Base class providing the adapter to populate inside of a {@link com.thehayro.view.InfiniteViewPager}.
@@ -42,6 +42,13 @@ import static com.thehayro.internal.Constants.PAGE_COUNT;
  * @param <T> an indicator datatype to distinguish the pages.
  */
 public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
+
+    private boolean mInitialized;
+    private int mInitState;
+    private int mScreenInitCount;
+    private int mCount = PAGE_COUNT;
+
+    private OnInitializeListener mOnInitializeListener;
 
     private PageModel<T>[] mPageModels;
 
@@ -67,16 +74,32 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
         }
         final PageModel<T> model = createPageModel(position);
         mPageModels[position] = model;
+        if (!mInitialized) {
+            if (mScreenInitCount >= PAGE_COUNT) {
+                mInitialized = true;
+                if (mOnInitializeListener != null) {
+                    mOnInitializeListener.onInitialized(mInitState);
+                }
+            }
+        }
         container.addView(model.getParentView());
         return model;
     }
 
+    @Override
+    public void notifyDataSetChanged() {
+       /* mInitialized = false;
+        mInitState = 0;
+        mScreenInitCount = 0;
+        mCount = PAGE_COUNT;*/
+        super.notifyDataSetChanged();
+    }
 
     /**
      * fills the page on index {@code position}.
      * @param position the page index to fill the page.
      */
-    void fillPage(final int position) {
+    boolean fillPage(final int position) {
         if (Constants.DEBUG) {
             Log.d("InfiniteViewPager", "setup Page " + position);
             printPageModels("before newPage");
@@ -85,7 +108,7 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
         final PageModel<T> newModel = createPageModel(position);
         if (oldModel == null || newModel == null) {
             Log.w(Constants.LOG_TAG, "fillPage no model found " + oldModel + " " + newModel);
-            return;
+            return newModel.getIndicator() != null;
         }
         // moving the new created views to the page of the viewpager
         oldModel.removeAllChildren();
@@ -94,7 +117,10 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
             oldModel.addChild(newChild);
         }
 
-        mPageModels[position].setIndicator(newModel.getIndicator());
+        T indicator = newModel.getIndicator();
+        mPageModels[position].setIndicator(indicator);
+
+        return indicator != null;
     }
 
     /**
@@ -118,16 +144,38 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
         T indicator = null;
         switch (pagePosition) {
             case Constants.PAGE_POSITION_LEFT:
-                indicator = getPreviousIndicator(); //TODO
+                indicator = getPreviousIndicator();
+                initIfNeeded(indicator, FLAG_LEFT_IS_NOT_NULL);
                 break;
             case Constants.PAGE_POSITION_CENTER:
                 indicator = getCurrentIndicator();
+                initIfNeeded(indicator, 0);
                 break;
             case Constants.PAGE_POSITION_RIGHT:
-                indicator = getNextIndicator(); //TODO
+                indicator = getNextIndicator();
+                initIfNeeded(indicator, FLAG_RIGHT_IS_NOT_NULL);
                 break;
         }
         return indicator;
+    }
+
+    public abstract void movePagesLeft();
+    public abstract void movePagesRight();
+
+
+    private void initIfNeeded(T indicator, int flag) {
+        if (!mInitialized) {
+            if (indicator != null) {
+                mInitState |= flag;
+            }
+            mScreenInitCount++;
+            /*if (mScreenInitCount >= PAGE_COUNT) {
+                mInitialized = true;
+                if (mOnInitializeListener != null) {
+                    mOnInitializeListener.onInitialized(mInitState);
+                }
+            }*/
+        }
     }
 
     /**
@@ -234,7 +282,7 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
 
     @Override
     public final int getCount() {
-        return PAGE_COUNT;
+        return mCount;
     }
 
     @Override
@@ -265,5 +313,19 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
         Log.d("InfiniteViewPager", builder);
     }
 
+    public OnInitializeListener getOnInitializeListener() {
+        return mOnInitializeListener;
+    }
 
+    public void setOnInitializeListener(OnInitializeListener onInitializeListener) {
+        mOnInitializeListener = onInitializeListener;
+    }
+
+    public void setCount(int count) {
+        mCount = count;
+    }
+
+    public static interface OnInitializeListener {
+        void onInitialized(int initState);
+    }
 }

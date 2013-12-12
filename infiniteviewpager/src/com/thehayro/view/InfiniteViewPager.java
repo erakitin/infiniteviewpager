@@ -30,12 +30,7 @@ import com.thehayro.internal.Constants;
 
 import java.lang.reflect.Field;
 
-import static com.thehayro.internal.Constants.ADAPTER_STATE;
-import static com.thehayro.internal.Constants.LOG_TAG;
-import static com.thehayro.internal.Constants.PAGE_POSITION_CENTER;
-import static com.thehayro.internal.Constants.PAGE_POSITION_LEFT;
-import static com.thehayro.internal.Constants.PAGE_POSITION_RIGHT;
-import static com.thehayro.internal.Constants.SUPER_STATE;
+import static com.thehayro.internal.Constants.*;
 
 /**
  * ViewPager that allows infinite scrolling.
@@ -60,6 +55,48 @@ public class InfiniteViewPager extends ViewPager {
     }
 
     private CustomScroller mScroller = null;
+
+    private InfinitePagerAdapter.OnInitializeListener mOnInitializeListener = new InfinitePagerAdapter.OnInitializeListener() {
+        @Override
+        public void onInitialized(int initState) {
+            final InfinitePagerAdapter adapter = (InfinitePagerAdapter) getAdapter();
+            if (adapter == null) {
+                return;
+            }
+
+            boolean isLeftExists  = (initState & FLAG_LEFT_IS_NOT_NULL) != 0;
+            boolean isRightExists = (initState & FLAG_RIGHT_IS_NOT_NULL) != 0;
+
+            if (!isLeftExists && !isRightExists) {
+
+            } else if (!isRightExists) {
+                adapter.movePageContents(PAGE_POSITION_CENTER, PAGE_POSITION_RIGHT);
+                adapter.movePageContents(PAGE_POSITION_LEFT, PAGE_POSITION_CENTER);
+                adapter.movePagesRight();
+                boolean hasLeft = adapter.fillPage(PAGE_POSITION_LEFT);
+                if (!hasLeft) {
+                    adapter.movePageContents(PAGE_POSITION_CENTER, PAGE_POSITION_LEFT);
+                    adapter.movePageContents(PAGE_POSITION_RIGHT, PAGE_POSITION_CENTER);
+                    adapter.movePagesLeft();
+                    setCurrentItem(PAGE_POSITION_CENTER, false);
+                    adapter.setCount(2);
+                    adapter.notifyDataSetChanged();
+                } else {
+                    setCurrentItem(PAGE_POSITION_RIGHT, false);
+                }
+            } else if (!isLeftExists) {
+                adapter.movePageContents(PAGE_POSITION_CENTER, PAGE_POSITION_LEFT);
+                adapter.movePageContents(PAGE_POSITION_RIGHT, PAGE_POSITION_CENTER);
+                adapter.movePagesLeft();
+                boolean hasRight = adapter.fillPage(PAGE_POSITION_RIGHT);
+                if (!hasRight) {
+                    adapter.setCount(2);
+                    adapter.notifyDataSetChanged();
+                }
+                setCurrentItem(PAGE_POSITION_LEFT, false);
+            }
+        }
+    };
 
     /**
      * Override the Scroller instance with our own class so we can change the
@@ -186,9 +223,9 @@ public class InfiniteViewPager extends ViewPager {
 
     @Override
     public final void setCurrentItem(final int item) {
-        if (item != PAGE_POSITION_CENTER) {
+        /*if (item != PAGE_POSITION_CENTER) {
             throw new RuntimeException("Cannot change page index unless its 1.");
-        }
+        }*/
         super.setCurrentItem(item);
     }
 
@@ -242,6 +279,7 @@ public class InfiniteViewPager extends ViewPager {
     @Override
     public void setAdapter(final PagerAdapter adapter) {
         if (adapter instanceof InfinitePagerAdapter) {
+            ((InfinitePagerAdapter) adapter).setOnInitializeListener(mOnInitializeListener);
             super.setAdapter(adapter);
             initInfiniteViewPager();
         } else {
