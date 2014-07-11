@@ -72,8 +72,15 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
         if (Constants.DEBUG) {
             Log.i("InfiniteViewPager", String.format("instantiating position %s", position));
         }
-        final PageModel<T> model = createPageModel(position);
-        mPageModels[position] = model;
+        PageModel<T> temp = mPageModels[position];
+        final PageModel<T> model;
+        if (temp != null && temp.getIndicator() == getIndicatorFromPagePosition(position)) {
+            model = temp;
+        } else {
+            model = createPageModel(position);
+            mPageModels[position] = model;
+        }
+
         container.addView(model.getParentView());
         if (!mInitialized) {
             if (mScreenInitCount >= PAGE_COUNT) {
@@ -88,7 +95,7 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
 
     @Override
     public void notifyDataSetChanged() {
-       /* mInitialized = false;
+        /*mInitialized = false;
         mInitState = 0;
         mScreenInitCount = 0;
         mCount = PAGE_COUNT;*/
@@ -131,7 +138,7 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
      */
     private PageModel<T> createPageModel(final int pagePosition){
         final T indicator = getIndicatorFromPagePosition(pagePosition);
-        final ViewGroup view = instantiateItem(indicator);
+        final ViewGroup view = instantiateItem(indicator, pagePosition);
 
         return new PageModel<T>(view, indicator);
     }
@@ -259,7 +266,7 @@ public abstract class InfinitePagerAdapter<T> extends PagerAdapter {
      * @param indicator the indicator the page should be instantiated with.
      * @return a ViewGroup containing the page layout.
      */
-    public abstract ViewGroup instantiateItem(T indicator);
+    public abstract ViewGroup instantiateItem(T indicator, int pagePosition);
 
     /**
      *
